@@ -27,39 +27,8 @@
         .list-tab-btn.active { background-color: #2e7d32; color: white; border-color: #2e7d32; }
         .library-layout { display: grid; gap: clamp(3px, 0.5vw, 8px); padding: 2vw; border-radius: 12px; background-color: var(--light-blue); border: 1px solid var(--border-color); width: 100%; min-width: 650px; box-sizing: border-box; justify-content: center; }
         
-        /* 🌟 창문 표시 스타일 */
-        .window-indicator {
-            background-color: #e0f7fa;
-            border: 2px dashed #4dd0e1;
-            color: #00838f;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: clamp(1em, 1.5vw, 1.2em);
-            letter-spacing: 10px;
-            padding: 10px 0;
-            margin-bottom: 10px;
-            box-shadow: inset 0 0 8px rgba(255,255,255,0.6);
-        }
-
-        /* 🌟 통로 표시 스타일 추가 */
-        .aisle-indicator {
-            background-color: #f1f3f5;
-            border: 2px dashed #adb5bd;
-            color: #495057;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: clamp(1em, 1.5vw, 1.2em);
-            letter-spacing: 10px;
-            padding: 10px 0;
-            margin-bottom: 10px;
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
-        }
+        .window-indicator { background-color: #e0f7fa; border: 2px dashed #4dd0e1; color: #00838f; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: clamp(1em, 1.5vw, 1.2em); letter-spacing: 10px; padding: 10px 0; margin-bottom: 10px; box-shadow: inset 0 0 8px rgba(255,255,255,0.6); }
+        .aisle-indicator { background-color: #f1f3f5; border: 2px dashed #adb5bd; color: #495057; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: clamp(1em, 1.5vw, 1.2em); letter-spacing: 10px; padding: 10px 0; margin-bottom: 10px; box-shadow: inset 0 0 8px rgba(0,0,0,0.05); }
 
         .cell { width: 100%; aspect-ratio: 1 / 1.1; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
         .empty-space { background-color: transparent; }
@@ -67,7 +36,6 @@
         .seat:hover { border-color: var(--primary-blue); transform: translateY(-2px); }
         .seat.selected { border: 2px solid var(--primary-blue); box-shadow: 0 0 8px rgba(0, 74, 159, 0.3); }
         
-        /* 파랑, 분홍, 노랑 구역 색상 CSS */
         .seat.seat-blue { background-color: #eef5ff; border-color: #abcaf0; }
         .seat.seat-blue:hover { border-color: var(--primary-blue); }
         .seat.seat-pink { background-color: #fff0f5; border-color: #f0b9cb; }
@@ -75,10 +43,7 @@
         .seat.seat-yellow { background-color: #fff9e6; border-color: #f7d383; }
         .seat.seat-yellow:hover { border-color: #e6a500; }
         
-        /* 사용 중일 때는 모두 고유 남색으로 통일 */
-        .seat.occupied, .seat.seat-blue.occupied, .seat.seat-pink.occupied, .seat.seat-yellow.occupied { 
-            background-color: var(--occupied-blue); color: white; border-color: var(--occupied-blue); 
-        }
+        .seat.occupied, .seat.seat-blue.occupied, .seat.seat-pink.occupied, .seat.seat-yellow.occupied { background-color: var(--occupied-blue); color: white; border-color: var(--occupied-blue); }
 
         .seat-number { font-weight: bold; font-size: clamp(9px, 1.1vw, 14px); margin-bottom: 2px; white-space: nowrap; letter-spacing: -0.5px; }
         .student-info { font-size: clamp(8px, 0.8vw, 12px); line-height: 1.2; font-weight: normal; text-align: center; word-break: break-all; }
@@ -108,6 +73,8 @@
         .btn-danger:hover { background-color: #b71c1c; }
         .btn-export { width: auto; padding: 8px 15px; font-size: 0.9em; background-color: #2e7d32; color: white; margin: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn-export:hover { background-color: #1b5e20; }
+        .btn-sheets { background-color: #0f9d58; } /* 구글 시트 초록색 */
+        .btn-sheets:hover { background-color: #0b8043; }
         .study-period-selector { display: inline-flex; gap: 15px; font-size: 0.95em; color: #333; font-weight: bold; align-items: center; }
         .study-period-selector label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
         @media (max-width: 1024px) { .main-container { flex-direction: column; align-items: center; } .map-section { width: 100%; padding: 15px; } .panel-section { flex: 1 1 auto; width: 100%; max-width: 100%; margin-top: 10px; } }
@@ -147,17 +114,22 @@
 
     <script>
         // ----------------------------------------------------
-        // 🌟 Firebase 환경 설정 (선생님의 코드로 유지)
+        // 🌟 1. 구글 시트 Web App URL (2단계에서 만든 주소를 여기에 붙여넣으세요)
         // ----------------------------------------------------
-       const firebaseConfig = {
-          apiKey: "AIzaSyCmFgqZFPzN2IuVov-2NNcEd7k1oI_Zk10",
-          authDomain: "mnhs-449df.firebaseapp.com",
-          databaseURL: "https://mnhs-449df-default-rtdb.firebaseio.com",
-          projectId: "mnhs-449df",
-          storageBucket: "mnhs-449df.firebasestorage.app",
-          messagingSenderId: "422021189318",
-          appId: "1:422021189318:web:0828ddc90c8e14e89ad1c7"
-       };
+        const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwNc2FUTGebWpfGsw5JQpTgv59gLuU88hiz1YZpZBtnKcH8zeA6NYxF6U7JbuT2egWz/exec";
+
+        // ----------------------------------------------------
+        // 🌟 2. Firebase 환경 설정 (선생님의 코드 그대로 유지)
+        // ----------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyCmFgqZFPzN2IuVov-2NNcEd7k1oI_Zk10",
+            authDomain: "mnhs-449df.firebaseapp.com",
+            databaseURL: "https://mnhs-449df-default-rtdb.firebaseio.com",
+            projectId: "mnhs-449df",
+            storageBucket: "mnhs-449df.firebasestorage.app",
+            messagingSenderId: "422021189318",
+            appId: "1:422021189318:web:0828ddc90c8e14e89ad1c7"
+        };
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -180,7 +152,6 @@
         updateClock();
 
         const libraryData = {
-            // 🌟 2학년 좌석: 'A-' 제거
             grade2: { 
                 name: "2학년 자습실", 
                 layout: [
@@ -221,7 +192,7 @@
             grade3: { 
                 name: "3학년 자습실", 
                 layout: [
-                    ['9', 0, '10', '11', '12', 0, '13', '14', 0, '15', '16', '17', '18', '19'],
+                    ['9', 0, '10', '11', '12', 0, '13', '14', '15', '16', 0, '17', '18', '19'],
                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     ['8', 0, 0, '84', '85', 0, '86', '87', 0, '88', '89', 0, 0, '20'],
                     ['7', 0, 0, '78', '79', 0, '80', '81', 0, '82', '83', 0, 0, '21'],
@@ -231,11 +202,11 @@
                     ['3', 0, 0, '60', '61', 0, '62', '63', 0, '64', '65', 0, 0, '25'],
                     ['2', 0, 0, '54', '55', 0, '56', '57', 0, '58', '59', 0, 0, '26'],
                     ['1', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, '41', '42', '43', '44', '45', '46', 0, 0, 0, 0, '27'],
-                    [0, 0, 0, '35', '36', '37', '38', '39', '40', 0, 0, 0, '28', 0],
+                    [0, 0, 0, '41', '42', '43', 0, '44', '45', '46', 0, 0, 0, '27'],
+                    [0, 0, 0, '35', '36', '37', 0, '38', '39', '40', 0, 0, '28', 0],
                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '29', 0, 0],
-                    [0, 0, '91', '97', 0, '34', '33', '32', 0, 0, '30', 0, 0, 0],
-                    [0, 0, '92', '98', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, '91', '97', 0, '34', '33', '32', 0, 0, 0, 0, 0, 0],
+                    [0, 0, '92', '98', 0, 0, 0, 0, '106', '105', '30', 0, 0, 0],
                     [0, 0, '93', '99', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     [0, 0, '94', '100', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     [0, 0, '95', '101', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -380,7 +351,7 @@
             const colCount = layoutMap[0].length;
             seatContainer.style.gridTemplateColumns = `repeat(${colCount}, minmax(40px, 70px))`;
 
-            // 🌟 창문 및 통로 표시 추가
+            // 창문 및 통로 표시
             if (['grade1', 'grade2', 'grade3', 'lounge'].includes(currentSpace)) {
                 const windowDiv = document.createElement('div');
                 windowDiv.className = 'window-indicator';
@@ -496,7 +467,9 @@
                             <label><input type="radio" name="studyPeriod" value="오후자습" checked> 오후자습</label>
                             <label><input type="radio" name="studyPeriod" value="저녁자습"> 저녁자습</label>
                         </div>
-                        <button class="btn btn-export" onclick="exportCSV('${gradePrefix}')">엑셀(CSV) 다운로드</button>
+                        <button class="btn btn-export" onclick="exportCSV('${gradePrefix}')">엑셀 다운로드</button>
+                        <!-- 🌟 구글 시트 전송 버튼 추가 -->
+                        <button class="btn btn-export btn-sheets" onclick="exportToGoogleSheet('${gradePrefix}')">구글 시트로 전송</button>
                     </div>
                 </div>
             `;
@@ -531,6 +504,7 @@
             db.ref(`librarySeats/${areaKey}/${seatIndex}/remark`).set(value);
         }
 
+        // 기존 엑셀 다운로드 기능
         function exportCSV(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
@@ -539,28 +513,18 @@
                     if (seat) {
                         let label = libraryData[key].seatLabels[index];
                         let displayLabel = String(label).includes('-') ? label : `${label}번`;
-                        
                         let seatLoc = displayLabel.startsWith(areaName) ? displayLabel : `${areaName} ${displayLabel}`;
-                        
                         allStudents.push({
-                            id: String(seat.id),
-                            name: seat.name,
-                            displayLabel: displayLabel,
-                            seatLocation: seatLoc,
-                            remark: seat.remark || '',
-                            areaKey: key,
-                            seatIndex: index
+                            id: String(seat.id), name: seat.name, displayLabel: displayLabel,
+                            seatLocation: seatLoc, remark: seat.remark || '', areaKey: key, seatIndex: index
                         });
                     }
                 });
             }
 
             let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
-            
             filteredStudents.sort((a, b) => {
-                if (a.areaKey !== b.areaKey) {
-                    return a.areaKey.localeCompare(b.areaKey);
-                }
+                if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
                 return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
             });
 
@@ -572,10 +536,7 @@
             const periodRadios = document.getElementsByName('studyPeriod');
             let selectedPeriod = "오후자습";
             for (let radio of periodRadios) {
-                if (radio.checked) {
-                    selectedPeriod = radio.value;
-                    break;
-                }
+                if (radio.checked) { selectedPeriod = radio.value; break; }
             }
 
             const now = new Date();
@@ -598,7 +559,6 @@
             });
 
             const fileName = `${fileDateStr}_${selectedPeriod}_${gradePrefix}학년_자습명단.csv`;
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
@@ -612,6 +572,82 @@
             document.body.removeChild(link);
         }
 
+     // 🌟 신규: 구글 시트로 전송하는 기능
+        function exportToGoogleSheet(gradePrefix) {
+            // 💡 주의: 1단계에서 새로 발급받은 배포 URL로 반드시 교체해주세요!
+            if (GOOGLE_SHEET_URL === "https://script.google.com/macros/s/AKfycbyX7zYZuhzcU_FeaBn232IVMyVXwH7gozqVZuWboYYKzWxGYbMRmY-wnXDR_HfMKzwO/exec" || !GOOGLE_SHEET_URL) {
+                alert("구글 시트 연동 주소가 새로 고침되지 않았습니다.\n새로 배포한 URL로 업데이트 해주세요.");
+                return;
+            }
+
+            let allStudents = [];
+            for (let key in libraryData) {
+                const areaName = libraryData[key].name;
+                libraryData[key].seats.forEach((seat, index) => {
+                    if (seat) {
+                        let label = libraryData[key].seatLabels[index];
+                        let displayLabel = String(label).includes('-') ? label : `${label}번`;
+                        let seatLoc = displayLabel.startsWith(areaName) ? displayLabel : `${areaName} ${displayLabel}`;
+                        allStudents.push({
+                            id: String(seat.id), name: seat.name, displayLabel: displayLabel,
+                            seatLocation: seatLoc, remark: seat.remark || '', areaKey: key, seatIndex: index
+                        });
+                    }
+                });
+            }
+
+            let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
+            filteredStudents.sort((a, b) => {
+                if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
+                return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
+            });
+
+            if (filteredStudents.length === 0) {
+                alert("전송할 데이터가 없습니다.");
+                return;
+            }
+
+            const periodRadios = document.getElementsByName('studyPeriod');
+            let selectedPeriod = "오후자습";
+            for (let radio of periodRadios) {
+                if (radio.checked) { selectedPeriod = radio.value; break; }
+            }
+
+            // 🌟 전송 시점의 날짜 및 시각 구하기
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const fullDateStr = `${year}-${month}-${date}`;
+            const timeStr = `${hours}:${minutes}:${seconds}`; // 🌟 전송 시각 데이터 추가
+
+            // 보낼 데이터 모음 (time 추가됨)
+            const payload = {
+                date: fullDateStr,
+                time: timeStr,
+                period: selectedPeriod,
+                grade: `${gradePrefix}학년`,
+                students: filteredStudents
+            };
+
+            // 구글 앱스 스크립트로 전송
+            fetch(GOOGLE_SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors', 
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                alert(`✅ 구글 시트로 전송 요청이 완료되었습니다!\n(전송 시각: ${timeStr})\n실제 시트에 데이터가 들어왔는지 확인해주세요.`);
+            })
+            .catch(error => {
+                alert("네트워크 오류가 발생했습니다.\n" + error);
+            });
+        }
         function updatePanel() {
             if (currentSpace.startsWith('list')) {
                 displaySeatNum.innerText = '-';
