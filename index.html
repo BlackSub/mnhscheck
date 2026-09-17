@@ -775,11 +775,11 @@
                 });
             }
 
-            // 1학년 -> 1.5초 딜레이 -> 2학년 -> 1.5초 딜레이 -> 3학년 전송
+            // 1학년 -> 5초 딜레이 -> 2학년 -> 5초 딜레이 -> 3학년 전송
             sendPayload('1', data1)
-                .then(() => new Promise(resolve => setTimeout(resolve, 1500))) 
+                .then(() => new Promise(resolve => setTimeout(resolve, 5000))) 
                 .then(() => sendPayload('2', data2))
-                .then(() => new Promise(resolve => setTimeout(resolve, 1500)))
+                .then(() => new Promise(resolve => setTimeout(resolve, 5000)))
                 .then(() => sendPayload('3', data3))
                 .then(() => {
                     if (!isAuto) {
