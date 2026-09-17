@@ -110,7 +110,7 @@
             <button class="btn btn-vacate" id="btnVacate" onclick="vacateSeat()">퇴실 처리</button>
             <button class="btn btn-danger" onclick="resetAllSeats()">전체 좌석 초기화</button>
             
-            <!-- 🌟 전체 학년 일괄 전송 구역 추가 -->
+            <!-- 🌟 전체 학년 일괄 전송 구역 -->
             <div style="width: 100%; border-top: 2px dashed var(--border-color); margin: 25px 0 15px 0;"></div>
             <h3 style="margin: 0 0 15px 0; color: #2e7d32; font-size: 1.15em;">전체 명단 일괄 전송</h3>
             <div class="study-period-selector" style="justify-content: center; margin-bottom: 15px; width: 100%;">
@@ -144,6 +144,9 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // 🌟 자동 전송 상태 확인용 변수 추가
+        let lastAutoSendTime = "";
+
         function updateClock() {
             const clockElement = document.getElementById('realTimeClock');
             if (!clockElement) return;
@@ -157,6 +160,20 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             clockElement.innerText = `${year}년 ${month}월 ${date}일 (${day}요일) ${hours}:${minutes}:${seconds}`;
+
+            // 🌟 [추가됨] 자동 전송 로직 (17:30 - 오후자습, 20:30 - 저녁자습)
+            const currentTimeStr = `${hours}:${minutes}`;
+            if (seconds === "00" && lastAutoSendTime !== currentTimeStr) {
+                if (currentTimeStr === "17:30") {
+                    lastAutoSendTime = currentTimeStr;
+                    console.log("⏰ 17:30 오후자습 자동 전송 시작");
+                    exportAllToGoogleSheet(true, "오후자습"); // true = 자동모드(알림창 생략)
+                } else if (currentTimeStr === "20:30") {
+                    lastAutoSendTime = currentTimeStr;
+                    console.log("⏰ 20:30 저녁자습 자동 전송 시작");
+                    exportAllToGoogleSheet(true, "저녁자습");
+                }
+            }
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -478,7 +495,6 @@
                             <label><input type="radio" name="studyPeriod" value="저녁자습"> 저녁자습</label>
                         </div>
                         <button class="btn btn-export" onclick="exportCSV('${gradePrefix}')">엑셀 다운로드</button>
-                        <!-- 🌟 구글 시트 전송 버튼 추가 -->
                         <button class="btn btn-export btn-sheets" onclick="exportToGoogleSheet('${gradePrefix}')">구글 시트로 전송</button>
                     </div>
                 </div>
@@ -514,7 +530,6 @@
             db.ref(`librarySeats/${areaKey}/${seatIndex}/remark`).set(value);
         }
 
-        // 기존 엑셀 다운로드 기능
         function exportCSV(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
@@ -582,7 +597,7 @@
             document.body.removeChild(link);
         }
 
-        // 특정 학년 구글 시트 전송 기능 (기존)
+        // 기존 1개 학년 수동 전송 기능
         function exportToGoogleSheet(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
@@ -666,24 +681,31 @@
             });
         }
 
-        // 🌟 신규: 전체 학년 일괄 전송 (관리자용)
-        function exportAllToGoogleSheet() {
-            if (!isTeacherAuthenticated) {
-                const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
-                // 기존 선생님 설정하신 비밀번호(96123) 적용
-                if (code === "96123") {
-                    isTeacherAuthenticated = true;
-                    alert("인증되었습니다.");
-                } else {
-                    if (code !== null) alert("코드가 일치하지 않습니다.");
-                    return; 
+        // 🌟 수정됨: 전체 학년 일괄 전송 (자동 전송 호환 기능 추가)
+        function exportAllToGoogleSheet(isAuto = false, autoPeriod = null) {
+            // 수동 클릭일 때만 인증 검사 수행
+            if (!isAuto) {
+                if (!isTeacherAuthenticated) {
+                    const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
+                    if (code === "96123") {
+                        isTeacherAuthenticated = true;
+                        alert("인증되었습니다.");
+                    } else {
+                        if (code !== null) alert("코드가 일치하지 않습니다.");
+                        return; 
+                    }
                 }
             }
 
-            const periodRadios = document.getElementsByName('panelStudyPeriod');
+            // 자동 전송이면 매개변수로 받은 시간을, 수동이면 화면의 라디오버튼 값을 적용
             let selectedPeriod = "오후자습";
-            for (let radio of periodRadios) {
-                if (radio.checked) { selectedPeriod = radio.value; break; }
+            if (isAuto && autoPeriod) {
+                selectedPeriod = autoPeriod;
+            } else {
+                const periodRadios = document.getElementsByName('panelStudyPeriod');
+                for (let radio of periodRadios) {
+                    if (radio.checked) { selectedPeriod = radio.value; break; }
+                }
             }
 
             const now = new Date();
@@ -697,7 +719,6 @@
             const fullDateStr = `${year}-${month}-${date}`;
             const timeStr = `${hours}:${minutes}:${seconds}`;
 
-            // 학년별 데이터 수집 함수
             function getGradeData(gradePrefix) {
                 let allStudents = [];
                 for (let key in libraryData) {
@@ -726,16 +747,18 @@
             const data2 = getGradeData('2');
             const data3 = getGradeData('3');
 
-            alert(`전체 학년(${selectedPeriod}) 전송을 시작합니다.\n구글 서버 안정화를 위해 약 5초 정도 소요됩니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.`);
+            // 수동일 때만 팝업 안내 및 UI 변경 수행
+            if (!isAuto) {
+                alert(`전체 학년(${selectedPeriod}) 전송을 시작합니다.\n구글 서버 안정화를 위해 약 5초 정도 소요됩니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.`);
+            }
 
             const sendBtn = document.getElementById('btnExportAll');
-            if (sendBtn) {
+            if (sendBtn && !isAuto) {
                 sendBtn.disabled = true;
                 sendBtn.innerText = "전체 전송 중... ⏳";
                 sendBtn.style.backgroundColor = "#777";
             }
 
-            // 개별 전송 실행 함수 (Promise 반환)
             function sendPayload(gradePrefix, students) {
                 const payload = {
                     date: fullDateStr,
@@ -752,20 +775,22 @@
                 });
             }
 
-            // 🌟 1학년 전송 -> 1.5초 대기 -> 2학년 전송 -> 1.5초 대기 -> 3학년 전송
+            // 1학년 -> 1.5초 딜레이 -> 2학년 -> 1.5초 딜레이 -> 3학년 전송
             sendPayload('1', data1)
-                .then(() => new Promise(resolve => setTimeout(resolve, 1500))) // 구글 락(Lock) 방지용 대기
+                .then(() => new Promise(resolve => setTimeout(resolve, 1500))) 
                 .then(() => sendPayload('2', data2))
                 .then(() => new Promise(resolve => setTimeout(resolve, 1500)))
                 .then(() => sendPayload('3', data3))
                 .then(() => {
-                    alert(`✅ 전체 학년 구글 시트 전송이 완벽하게 완료되었습니다!\n(전송 시각: ${timeStr})`);
+                    if (!isAuto) {
+                        alert(`✅ 전체 학년 구글 시트 전송이 완벽하게 완료되었습니다!\n(전송 시각: ${timeStr})`);
+                    }
                 })
                 .catch(error => {
-                    alert("전송 중 네트워크 오류가 발생했습니다.\n" + error);
+                    if (!isAuto) alert("전송 중 네트워크 오류가 발생했습니다.\n" + error);
                 })
                 .finally(() => {
-                    if (sendBtn) {
+                    if (sendBtn && !isAuto) {
                         sendBtn.disabled = false;
                         sendBtn.innerText = "전체 학년 구글 시트로 전송";
                         sendBtn.style.backgroundColor = "#0f9d58";
