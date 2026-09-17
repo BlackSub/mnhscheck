@@ -73,7 +73,7 @@
         .btn-danger:hover { background-color: #b71c1c; }
         .btn-export { width: auto; padding: 8px 15px; font-size: 0.9em; background-color: #2e7d32; color: white; margin: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn-export:hover { background-color: #1b5e20; }
-        .btn-sheets { background-color: #0f9d58; } /* 구글 시트 초록색 */
+        .btn-sheets { background-color: #0f9d58; color: white; transition: background-color 0.3s; margin-top: 5px; } 
         .btn-sheets:hover { background-color: #0b8043; }
         .study-period-selector { display: inline-flex; gap: 15px; font-size: 0.95em; color: #333; font-weight: bold; align-items: center; }
         .study-period-selector label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
@@ -109,17 +109,27 @@
             <button class="btn btn-register" id="btnRegister" onclick="registerSeat()">좌석 등록하기</button>
             <button class="btn btn-vacate" id="btnVacate" onclick="vacateSeat()">퇴실 처리</button>
             <button class="btn btn-danger" onclick="resetAllSeats()">전체 좌석 초기화</button>
+            
+            <!-- 🌟 전체 학년 일괄 전송 구역 추가 -->
+            <div style="width: 100%; border-top: 2px dashed var(--border-color); margin: 25px 0 15px 0;"></div>
+            <h3 style="margin: 0 0 15px 0; color: #2e7d32; font-size: 1.15em;">전체 명단 일괄 전송</h3>
+            <div class="study-period-selector" style="justify-content: center; margin-bottom: 15px; width: 100%;">
+                <label><input type="radio" name="panelStudyPeriod" value="오후자습" checked> 오후자습</label>
+                <label><input type="radio" name="panelStudyPeriod" value="저녁자습"> 저녁자습</label>
+            </div>
+            <button class="btn btn-sheets" id="btnExportAll" onclick="exportAllToGoogleSheet()">전체 학년 구글 시트로 전송</button>
+            
         </div>
     </div>
 
     <script>
         // ----------------------------------------------------
-        // 🌟 1. 구글 시트 Web App URL (2단계에서 만든 주소를 여기에 붙여넣으세요)
+        // 🌟 1. 구글 시트 Web App URL 
         // ----------------------------------------------------
         const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyd6ZAZ6BhY8EwPqvtREKANyc59WMh2MbKF5bMM1PSBd4N8jU6jgswhR3eU1vhQAAJ5/exec";
 
         // ----------------------------------------------------
-        // 🌟 2. Firebase 환경 설정 (선생님의 코드 그대로 유지)
+        // 🌟 2. Firebase 환경 설정 
         // ----------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCmFgqZFPzN2IuVov-2NNcEd7k1oI_Zk10",
@@ -211,7 +221,7 @@
                     [0, '84', '91', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     [0, '85', '92', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     [0, '86', '93', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, '87', '94', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, '87', '94', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
                 ], seats: [] 
             },
             stand: { 
@@ -572,13 +582,8 @@
             document.body.removeChild(link);
         }
 
-     // 🌟 신규: 구글 시트로 전송하는 기능
-       function exportToGoogleSheet(gradePrefix) {
-            if (GOOGLE_SHEET_URL === "여기에_구글_앱스스크립트_URL_입력" || !GOOGLE_SHEET_URL) {
-                alert("구글 시트 연동 주소가 새로 고침되지 않았습니다.\n새로 배포한 URL로 업데이트 해주세요.");
-                return;
-            }
-
+        // 특정 학년 구글 시트 전송 기능 (기존)
+        function exportToGoogleSheet(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
                 const areaName = libraryData[key].name;
@@ -612,7 +617,6 @@
                 if (radio.checked) { selectedPeriod = radio.value; break; }
             }
 
-            // 전송 시점의 날짜 및 시각 구하기
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -632,18 +636,15 @@
                 students: filteredStudents
             };
 
-            // 🌟 1. 전송 시작 알림창 띄우기
-            alert("전송을 시작합니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.");
+            alert("해당 학년 전송을 시작합니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.");
 
-            // 🌟 2. 전송 버튼 상태 변경 (중복 클릭 방지 및 시각적 효과)
-            const sendBtn = document.querySelector('.btn-sheets');
+            const sendBtn = event ? event.target : null;
             if (sendBtn) {
-                sendBtn.disabled = true; // 버튼 비활성화
-                sendBtn.innerText = "전송 중... ⏳"; // 텍스트 변경
-                sendBtn.style.backgroundColor = "#777"; // 버튼 색상을 회색으로 변경
+                sendBtn.disabled = true;
+                sendBtn.innerText = "전송 중... ⏳";
+                sendBtn.style.backgroundColor = "#777";
             }
 
-            // 구글 앱스 스크립트로 전송
             fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 mode: 'no-cors', 
@@ -651,21 +652,127 @@
                 body: JSON.stringify(payload)
             })
             .then(response => {
-                // 🌟 3. 완료 알림창 띄우기
                 alert(`✅ 구글 시트로 전송이 완료되었습니다!\n(전송 시각: ${timeStr})`);
             })
             .catch(error => {
                 alert("네트워크 오류가 발생했습니다.\n" + error);
             })
             .finally(() => {
-                // 🌟 4. 전송 완료 후 버튼 상태를 원래대로 복구
                 if (sendBtn) {
                     sendBtn.disabled = false;
                     sendBtn.innerText = "구글 시트로 전송";
-                    sendBtn.style.backgroundColor = "#0f9d58"; // 원래 초록색으로 복구
+                    sendBtn.style.backgroundColor = "#0f9d58";
                 }
             });
         }
+
+        // 🌟 신규: 전체 학년 일괄 전송 (관리자용)
+        function exportAllToGoogleSheet() {
+            if (!isTeacherAuthenticated) {
+                const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
+                // 기존 선생님 설정하신 비밀번호(96123) 적용
+                if (code === "96123") {
+                    isTeacherAuthenticated = true;
+                    alert("인증되었습니다.");
+                } else {
+                    if (code !== null) alert("코드가 일치하지 않습니다.");
+                    return; 
+                }
+            }
+
+            const periodRadios = document.getElementsByName('panelStudyPeriod');
+            let selectedPeriod = "오후자습";
+            for (let radio of periodRadios) {
+                if (radio.checked) { selectedPeriod = radio.value; break; }
+            }
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const fullDateStr = `${year}-${month}-${date}`;
+            const timeStr = `${hours}:${minutes}:${seconds}`;
+
+            // 학년별 데이터 수집 함수
+            function getGradeData(gradePrefix) {
+                let allStudents = [];
+                for (let key in libraryData) {
+                    const areaName = libraryData[key].name;
+                    libraryData[key].seats.forEach((seat, index) => {
+                        if (seat) {
+                            let label = libraryData[key].seatLabels[index];
+                            let displayLabel = String(label).includes('-') ? label : `${label}번`;
+                            let seatLoc = displayLabel.startsWith(areaName) ? displayLabel : `${areaName} ${displayLabel}`;
+                            allStudents.push({
+                                id: String(seat.id), name: seat.name, displayLabel: displayLabel,
+                                seatLocation: seatLoc, remark: seat.remark || '', areaKey: key, seatIndex: index
+                            });
+                        }
+                    });
+                }
+                let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
+                filteredStudents.sort((a, b) => {
+                    if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
+                    return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
+                });
+                return filteredStudents;
+            }
+
+            const data1 = getGradeData('1');
+            const data2 = getGradeData('2');
+            const data3 = getGradeData('3');
+
+            alert(`전체 학년(${selectedPeriod}) 전송을 시작합니다.\n구글 서버 안정화를 위해 약 5초 정도 소요됩니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.`);
+
+            const sendBtn = document.getElementById('btnExportAll');
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerText = "전체 전송 중... ⏳";
+                sendBtn.style.backgroundColor = "#777";
+            }
+
+            // 개별 전송 실행 함수 (Promise 반환)
+            function sendPayload(gradePrefix, students) {
+                const payload = {
+                    date: fullDateStr,
+                    time: timeStr,
+                    period: selectedPeriod,
+                    grade: `${gradePrefix}학년`,
+                    students: students
+                };
+                return fetch(GOOGLE_SHEET_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            // 🌟 1학년 전송 -> 1.5초 대기 -> 2학년 전송 -> 1.5초 대기 -> 3학년 전송
+            sendPayload('1', data1)
+                .then(() => new Promise(resolve => setTimeout(resolve, 1500))) // 구글 락(Lock) 방지용 대기
+                .then(() => sendPayload('2', data2))
+                .then(() => new Promise(resolve => setTimeout(resolve, 1500)))
+                .then(() => sendPayload('3', data3))
+                .then(() => {
+                    alert(`✅ 전체 학년 구글 시트 전송이 완벽하게 완료되었습니다!\n(전송 시각: ${timeStr})`);
+                })
+                .catch(error => {
+                    alert("전송 중 네트워크 오류가 발생했습니다.\n" + error);
+                })
+                .finally(() => {
+                    if (sendBtn) {
+                        sendBtn.disabled = false;
+                        sendBtn.innerText = "전체 학년 구글 시트로 전송";
+                        sendBtn.style.backgroundColor = "#0f9d58";
+                    }
+                });
+        }
+
         function updatePanel() {
             if (currentSpace.startsWith('list')) {
                 displaySeatNum.innerText = '-';
@@ -751,7 +858,7 @@
         function resetAllSeats() {
             if (!isTeacherAuthenticated) {
                 const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
-                if (code === "1234") {
+                if (code === "96123") {
                     isTeacherAuthenticated = true;
                     alert("인증되었습니다.");
                 } else {
