@@ -147,7 +147,7 @@
         // 🌟 자동 전송 상태 확인용 변수 추가
         let lastAutoSendTime = "";
 
-        function updateClock() {
+function updateClock() {
             const clockElement = document.getElementById('realTimeClock');
             if (!clockElement) return;
             const now = new Date();
@@ -161,14 +161,21 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             clockElement.innerText = `${year}년 ${month}월 ${date}일 (${day}요일) ${hours}:${minutes}:${seconds}`;
 
-            // 🌟 [추가됨] 자동 전송 로직 (17:30 - 오후자습, 20:30 - 저녁자습)
+            // 🌟 [추가됨] 18:20 자동 초기화 로직 포함
             const currentTimeStr = `${hours}:${minutes}`;
             if (seconds === "00" && lastAutoSendTime !== currentTimeStr) {
                 if (currentTimeStr === "17:30") {
                     lastAutoSendTime = currentTimeStr;
                     console.log("⏰ 17:30 오후자습 자동 전송 시작");
-                    exportAllToGoogleSheet(true, "오후자습"); // true = 자동모드(알림창 생략)
-                } else if (currentTimeStr === "20:30") {
+                    exportAllToGoogleSheet(true, "오후자습"); // true = 자동모드
+                } 
+                // 🌟 18:20 전체 좌석 자동 초기화
+                else if (currentTimeStr === "18:20") {
+                    lastAutoSendTime = currentTimeStr;
+                    console.log("⏰ 18:20 전체 좌석 자동 초기화 시작");
+                    resetAllSeats(true); // true = 자동모드(팝업 생략)
+                } 
+                else if (currentTimeStr === "20:30") {
                     lastAutoSendTime = currentTimeStr;
                     console.log("⏰ 20:30 저녁자습 자동 전송 시작");
                     exportAllToGoogleSheet(true, "저녁자습");
@@ -880,31 +887,43 @@
             }
         }
 
-        function resetAllSeats() {
-            if (!isTeacherAuthenticated) {
-                const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
-                if (code === "96123") {
-                    isTeacherAuthenticated = true;
-                    alert("인증되었습니다.");
-                } else {
-                    if (code !== null) alert("코드가 일치하지 않습니다.");
-                    return; 
+       function resetAllSeats(isAuto = false) {
+            // 수동 클릭일 때만 선생님 암호와 진짜 지울 것인지 묻는 경고창을 띄웁니다.
+            if (!isAuto) {
+                if (!isTeacherAuthenticated) {
+                    const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
+                    if (code === "96123") {
+                        isTeacherAuthenticated = true;
+                        alert("인증되었습니다.");
+                    } else {
+                        if (code !== null) alert("코드가 일치하지 않습니다.");
+                        return; 
+                    }
+                }
+
+                if (!confirm("⚠️ 주의: 모든 학년과 구역의 좌석 데이터가 완전히 삭제됩니다.\n정말로 전체 좌석을 초기화하시겠습니까?")) {
+                    return; // 취소를 누르면 중단
                 }
             }
 
-            if (confirm("⚠️ 주의: 모든 학년과 구역의 좌석 데이터가 완전히 삭제됩니다.\n정말로 전체 좌석을 초기화하시겠습니까?")) {
-                db.ref('librarySeats').remove()
-                    .then(() => {
+            // Firebase 데이터베이스에서 모든 좌석 정보 삭제
+            db.ref('librarySeats').remove()
+                .then(() => {
+                    // 수동일 때만 완료 알림창을 띄움
+                    if (!isAuto) {
                         alert("전체 좌석이 성공적으로 초기화되었습니다.");
-                        selectedSeatIndex = null;
-                        updatePanel();
-                    })
-                    .catch((error) => {
+                    }
+                    selectedSeatIndex = null;
+                    updatePanel(); // 화면(UI) 업데이트
+                })
+                .catch((error) => {
+                    if (!isAuto) {
                         alert("초기화 중 오류가 발생했습니다: " + error);
-                    });
-            }
+                    } else {
+                        console.error("자동 초기화 중 오류 발생: ", error);
+                    }
+                });
         }
-
         renderTabs();
     </script>
 </body>
