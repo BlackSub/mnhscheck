@@ -573,9 +573,8 @@
         }
 
      // 🌟 신규: 구글 시트로 전송하는 기능
-        function exportToGoogleSheet(gradePrefix) {
-            // 💡 주의: 1단계에서 새로 발급받은 배포 URL로 반드시 교체해주세요!
-            if (GOOGLE_SHEET_URL === "https://script.google.com/macros/s/AKfycbyX7zYZuhzcU_FeaBn232IVMyVXwH7gozqVZuWboYYKzWxGYbMRmY-wnXDR_HfMKzwO/exec" || !GOOGLE_SHEET_URL) {
+       function exportToGoogleSheet(gradePrefix) {
+            if (GOOGLE_SHEET_URL === "https://script.google.com/macros/s/AKfycbyd6ZAZ6BhY8EwPqvtREKANyc59WMh2MbKF5bMM1PSBd4N8jU6jgswhR3eU1vhQAAJ5/exec" || !GOOGLE_SHEET_URL) {
                 alert("구글 시트 연동 주소가 새로 고침되지 않았습니다.\n새로 배포한 URL로 업데이트 해주세요.");
                 return;
             }
@@ -613,7 +612,7 @@
                 if (radio.checked) { selectedPeriod = radio.value; break; }
             }
 
-            // 🌟 전송 시점의 날짜 및 시각 구하기
+            // 전송 시점의 날짜 및 시각 구하기
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -623,9 +622,8 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             
             const fullDateStr = `${year}-${month}-${date}`;
-            const timeStr = `${hours}:${minutes}:${seconds}`; // 🌟 전송 시각 데이터 추가
+            const timeStr = `${hours}:${minutes}:${seconds}`;
 
-            // 보낼 데이터 모음 (time 추가됨)
             const payload = {
                 date: fullDateStr,
                 time: timeStr,
@@ -633,6 +631,17 @@
                 grade: `${gradePrefix}학년`,
                 students: filteredStudents
             };
+
+            // 🌟 1. 전송 시작 알림창 띄우기
+            alert("전송을 시작합니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.");
+
+            // 🌟 2. 전송 버튼 상태 변경 (중복 클릭 방지 및 시각적 효과)
+            const sendBtn = document.querySelector('.btn-sheets');
+            if (sendBtn) {
+                sendBtn.disabled = true; // 버튼 비활성화
+                sendBtn.innerText = "전송 중... ⏳"; // 텍스트 변경
+                sendBtn.style.backgroundColor = "#777"; // 버튼 색상을 회색으로 변경
+            }
 
             // 구글 앱스 스크립트로 전송
             fetch(GOOGLE_SHEET_URL, {
@@ -642,10 +651,19 @@
                 body: JSON.stringify(payload)
             })
             .then(response => {
-                alert(`✅ 구글 시트로 전송 요청이 완료되었습니다!\n(전송 시각: ${timeStr})\n실제 시트에 데이터가 들어왔는지 확인해주세요.`);
+                // 🌟 3. 완료 알림창 띄우기
+                alert(`✅ 구글 시트로 전송이 완료되었습니다!\n(전송 시각: ${timeStr})`);
             })
             .catch(error => {
                 alert("네트워크 오류가 발생했습니다.\n" + error);
+            })
+            .finally(() => {
+                // 🌟 4. 전송 완료 후 버튼 상태를 원래대로 복구
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerText = "구글 시트로 전송";
+                    sendBtn.style.backgroundColor = "#0f9d58"; // 원래 초록색으로 복구
+                }
             });
         }
         function updatePanel() {
