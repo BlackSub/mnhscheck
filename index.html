@@ -161,24 +161,28 @@ function updateClock() {
             const seconds = String(now.getSeconds()).padStart(2, '0');
             clockElement.innerText = `${year}년 ${month}월 ${date}일 (${day}요일) ${hours}:${minutes}:${seconds}`;
 
-            // 🌟 [추가됨] 18:20 자동 초기화 로직 포함
             const currentTimeStr = `${hours}:${minutes}`;
             if (seconds === "00" && lastAutoSendTime !== currentTimeStr) {
                 if (currentTimeStr === "17:30") {
                     lastAutoSendTime = currentTimeStr;
                     console.log("⏰ 17:30 오후자습 자동 전송 시작");
-                    exportAllToGoogleSheet(true, "오후자습"); // true = 자동모드
+                    exportAllToGoogleSheet(true, "오후자습"); 
                 } 
-                // 🌟 18:20 전체 좌석 자동 초기화
                 else if (currentTimeStr === "18:20") {
                     lastAutoSendTime = currentTimeStr;
                     console.log("⏰ 18:20 전체 좌석 자동 초기화 시작");
-                    resetAllSeats(true); // true = 자동모드(팝업 생략)
+                    resetAllSeats(true); 
                 } 
                 else if (currentTimeStr === "20:30") {
                     lastAutoSendTime = currentTimeStr;
                     console.log("⏰ 20:30 저녁자습 자동 전송 시작");
                     exportAllToGoogleSheet(true, "저녁자습");
+                }
+                // 🌟 신규 추가됨: 21:20 마감 전체 좌석 자동 초기화
+                else if (currentTimeStr === "21:20") {
+                    lastAutoSendTime = currentTimeStr;
+                    console.log("⏰ 21:20 전체 좌석 자동 초기화 시작 (마감)");
+                    resetAllSeats(true); 
                 }
             }
         }
