@@ -75,8 +75,6 @@
         .btn-export:hover { background-color: #1b5e20; }
         .btn-sheets { background-color: #0f9d58; color: white; transition: background-color 0.3s; margin-top: 5px; } 
         .btn-sheets:hover { background-color: #0b8043; }
-        .study-period-selector { display: inline-flex; gap: 15px; font-size: 0.95em; color: #333; font-weight: bold; align-items: center; }
-        .study-period-selector label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
         @media (max-width: 1024px) { .main-container { flex-direction: column; align-items: center; } .map-section { width: 100%; padding: 15px; } .panel-section { flex: 1 1 auto; width: 100%; max-width: 100%; margin-top: 10px; } }
     </style>
 </head>
@@ -110,27 +108,17 @@
             <button class="btn btn-vacate" id="btnVacate" onclick="vacateSeat()">퇴실 처리</button>
             <button class="btn btn-danger" onclick="resetAllSeats()">전체 좌석 초기화</button>
             
-            <!-- 🌟 전체 학년 일괄 전송 구역 -->
             <div style="width: 100%; border-top: 2px dashed var(--border-color); margin: 25px 0 15px 0;"></div>
             <h3 style="margin: 0 0 15px 0; color: #2e7d32; font-size: 1.15em;">전체 명단 일괄 전송</h3>
-            <div class="study-period-selector" style="justify-content: center; margin-bottom: 15px; width: 100%;">
-                <label><input type="radio" name="panelStudyPeriod" value="오후자습" checked> 오후자습</label>
-                <label><input type="radio" name="panelStudyPeriod" value="저녁자습"> 저녁자습</label>
-            </div>
+            <!-- 🌟 라디오 버튼 삭제됨 -->
             <button class="btn btn-sheets" id="btnExportAll" onclick="exportAllToGoogleSheet()">전체 학년 구글 시트로 전송</button>
             
         </div>
     </div>
 
     <script>
-        // ----------------------------------------------------
-        // 🌟 1. 구글 시트 Web App URL 
-        // ----------------------------------------------------
         const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyd6ZAZ6BhY8EwPqvtREKANyc59WMh2MbKF5bMM1PSBd4N8jU6jgswhR3eU1vhQAAJ5/exec";
 
-        // ----------------------------------------------------
-        // 🌟 2. Firebase 환경 설정 
-        // ----------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCmFgqZFPzN2IuVov-2NNcEd7k1oI_Zk10",
             authDomain: "mnhs-449df.firebaseapp.com",
@@ -140,14 +128,12 @@
             messagingSenderId: "422021189318",
             appId: "1:422021189318:web:0828ddc90c8e14e89ad1c7"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 🌟 자동 전송 상태 확인용 변수 추가
         let lastAutoSendTime = "";
 
-function updateClock() {
+        function updateClock() {
             const clockElement = document.getElementById('realTimeClock');
             if (!clockElement) return;
             const now = new Date();
@@ -160,6 +146,9 @@ function updateClock() {
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             clockElement.innerText = `${year}년 ${month}월 ${date}일 (${day}요일) ${hours}:${minutes}:${seconds}`;
+
+            // (이 로직은 웹 브라우저를 켜두었을 때의 예비 자동화입니다. 
+            // 현재 구글 서버 단독 자동화가 작동 중이므로 이 부분이 실행되지 않아도 무방합니다.)
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -281,7 +270,6 @@ function updateClock() {
 
         db.ref('librarySeats').on('value', (snapshot) => {
             const data = snapshot.val() || {};
-            
             for (let key in libraryData) {
                 libraryData[key].seats = new Array(libraryData[key].seatLabels.length).fill(null);
                 if (data[key]) {
@@ -290,7 +278,6 @@ function updateClock() {
                     }
                 }
             }
-            
             if (currentSpace.startsWith('list')) {
                 renderList(currentSpace.replace('list-grade', ''));
             } else {
@@ -301,7 +288,6 @@ function updateClock() {
 
         function renderTabs() {
             tabContainer.innerHTML = '';
-            
             for (let key in libraryData) {
                 const btn = document.createElement('button');
                 btn.className = 'tab-button';
@@ -341,7 +327,6 @@ function updateClock() {
                             return; 
                         }
                     }
-
                     currentSpace = tabInfo.id;
                     selectedSeatIndex = null;
                     updatePanel();
@@ -360,11 +345,9 @@ function updateClock() {
             const layoutMap = libraryData[currentSpace].layout;
             const currentSeatData = libraryData[currentSpace].seats;
             const labels = libraryData[currentSpace].seatLabels;
-            
             const colCount = layoutMap[0].length;
             seatContainer.style.gridTemplateColumns = `repeat(${colCount}, minmax(40px, 70px))`;
 
-            // 창문 및 통로 표시
             if (['grade1', 'grade2', 'grade3', 'lounge'].includes(currentSpace)) {
                 const windowDiv = document.createElement('div');
                 windowDiv.className = 'window-indicator';
@@ -418,7 +401,6 @@ function updateClock() {
                             selectedSeatIndex = seatIndex;
                             updatePanel();
                             renderSeats();
-                            
                             if (window.innerWidth <= 1024) {
                                 document.getElementById('panelSection').scrollIntoView({ behavior: 'smooth' });
                             }
@@ -438,48 +420,34 @@ function updateClock() {
             seatContainer.style.backgroundColor = 'transparent';
 
             let allStudents = [];
-            
             for (let key in libraryData) {
                 const areaName = libraryData[key].name;
                 libraryData[key].seats.forEach((seat, index) => {
                     if (seat) {
                         let label = libraryData[key].seatLabels[index];
                         let displayLabel = String(label).includes('-') ? label : `${label}번`;
-                        
                         let seatLoc = displayLabel.startsWith(areaName) ? displayLabel : `${areaName} ${displayLabel}`;
-                        
                         allStudents.push({
-                            id: String(seat.id),
-                            name: seat.name,
-                            displayLabel: displayLabel,
-                            seatLocation: seatLoc,
-                            remark: seat.remark || '', 
-                            areaKey: key,
-                            seatIndex: index
+                            id: String(seat.id), name: seat.name, displayLabel: displayLabel,
+                            seatLocation: seatLoc, remark: seat.remark || '', areaKey: key, seatIndex: index
                         });
                     }
                 });
             }
 
             let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
-            
             filteredStudents.sort((a, b) => {
-                if (a.areaKey !== b.areaKey) {
-                    return a.areaKey.localeCompare(b.areaKey);
-                }
+                if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
                 return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
             });
 
+            // 🌟 라디오 버튼 제거됨
             let summaryHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-left: 5px; flex-wrap: wrap; gap: 10px;">
                     <div style="font-size: 1.1em; font-weight: bold; color: #2e7d32;">
                         현재 자습 참여 인원 : 총 ${filteredStudents.length}명
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                        <div class="study-period-selector">
-                            <label><input type="radio" name="studyPeriod" value="오후자습" checked> 오후자습</label>
-                            <label><input type="radio" name="studyPeriod" value="저녁자습"> 저녁자습</label>
-                        </div>
                         <button class="btn btn-export" onclick="exportCSV('${gradePrefix}')">엑셀 다운로드</button>
                         <button class="btn btn-export btn-sheets" onclick="exportToGoogleSheet('${gradePrefix}')">구글 시트로 전송</button>
                     </div>
@@ -493,7 +461,6 @@ function updateClock() {
 
             let tableHTML = '<div style="overflow-x: auto;"><table class="student-list-table">';
             tableHTML += '<tr><th style="min-width:60px;">학번</th><th style="min-width:60px;">이름</th><th style="min-width:110px;">위치</th><th style="min-width:150px;">비고</th></tr>';
-            
             filteredStudents.forEach(student => {
                 tableHTML += `<tr>
                                 <td>${student.id}</td>
@@ -501,14 +468,12 @@ function updateClock() {
                                 <td>${student.seatLocation}</td>
                                 <td>
                                     <input type="text" class="remark-input" 
-                                           value="${student.remark}" 
-                                           placeholder="조기 귀가 등..." 
+                                           value="${student.remark}" placeholder="조기 귀가 등..." 
                                            onchange="updateRemark('${student.areaKey}', ${student.seatIndex}, this.value)">
                                 </td>
                               </tr>`;
             });
             tableHTML += '</table></div>';
-            
             seatContainer.innerHTML = summaryHTML + tableHTML;
         }
 
@@ -516,6 +481,7 @@ function updateClock() {
             db.ref(`librarySeats/${areaKey}/${seatIndex}/remark`).set(value);
         }
 
+        // 🌟 수정됨: 엑셀 다운로드 시 프롬프트 팝업으로 강제 선택
         function exportCSV(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
@@ -532,38 +498,29 @@ function updateClock() {
                     }
                 });
             }
-
             let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
-            filteredStudents.sort((a, b) => {
-                if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
-                return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
-            });
+            if (filteredStudents.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
 
-            if (filteredStudents.length === 0) {
-                alert("다운로드할 데이터가 없습니다.");
+            // 💡 여기서 확인받습니다!
+            const periodInput = prompt("어떤 자습 명단을 엑셀로 다운로드하시겠습니까?\n\n1 : 오후자습\n2 : 저녁자습\n\n숫자 '1' 또는 '2'를 입력해주세요.");
+            let selectedPeriod = "";
+            if (periodInput === "1") {
+                selectedPeriod = "오후자습";
+            } else if (periodInput === "2") {
+                selectedPeriod = "저녁자습";
+            } else {
+                alert("올바른 숫자를 입력하지 않아 다운로드가 취소되었습니다.");
                 return;
-            }
-
-            const periodRadios = document.getElementsByName('studyPeriod');
-            let selectedPeriod = "오후자습";
-            for (let radio of periodRadios) {
-                if (radio.checked) { selectedPeriod = radio.value; break; }
             }
 
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const date = String(now.getDate()).padStart(2, '0');
-            const days = ['일', '월', '화', '수', '목', '금', '토'];
-            const day = days[now.getDay()];
-            
-            const fullDateStr = `${year}년 ${month}월 ${date}일 (${day}요일)`;
             const fileDateStr = `${year}${month}${date}`;
 
             let csvContent = '\uFEFF'; 
-            csvContent += `"${fullDateStr}","${selectedPeriod}","${gradePrefix}학년 자습명단"\n\n`;
-            csvContent += '학번,이름,현재 좌석위치,비고\n';
-
+            csvContent += `"${year}년 ${month}월 ${date}일","${selectedPeriod}","${gradePrefix}학년 자습명단"\n\n학번,이름,현재 좌석위치,비고\n`;
             filteredStudents.forEach(student => {
                 let remark = student.remark.replace(/"/g, '""'); 
                 csvContent += `${student.id},${student.name},${student.seatLocation},"${remark}"\n`;
@@ -572,18 +529,15 @@ function updateClock() {
             const fileName = `${fileDateStr}_${selectedPeriod}_${gradePrefix}학년_자습명단.csv`;
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute('href', url);
+            link.setAttribute('href', URL.createObjectURL(blob));
             link.setAttribute('download', fileName);
             link.style.visibility = 'hidden';
-            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
-        // 기존 1개 학년 수동 전송 기능
+        // 🌟 수정됨: 개별 학년 구글 시트 전송 시 프롬프트 팝업으로 강제 선택
         function exportToGoogleSheet(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
@@ -600,110 +554,73 @@ function updateClock() {
                     }
                 });
             }
-
             let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
-            filteredStudents.sort((a, b) => {
-                if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
-                return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
-            });
+            if (filteredStudents.length === 0) { alert("전송할 데이터가 없습니다."); return; }
 
-            if (filteredStudents.length === 0) {
-                alert("전송할 데이터가 없습니다.");
+            // 💡 여기서 확인받습니다!
+            const periodInput = prompt(`해당 학년(${gradePrefix}학년)의 어떤 자습 명단을 전송하시겠습니까?\n\n1 : 오후자습\n2 : 저녁자습\n\n숫자 '1' 또는 '2'를 입력해주세요.`);
+            let selectedPeriod = "";
+            if (periodInput === "1") {
+                selectedPeriod = "오후자습";
+            } else if (periodInput === "2") {
+                selectedPeriod = "저녁자습";
+            } else {
+                alert("올바른 숫자를 입력하지 않아 전송이 취소되었습니다.");
                 return;
             }
 
-            const periodRadios = document.getElementsByName('studyPeriod');
-            let selectedPeriod = "오후자습";
-            for (let radio of periodRadios) {
-                if (radio.checked) { selectedPeriod = radio.value; break; }
-            }
-
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const date = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            
-            const fullDateStr = `${year}-${month}-${date}`;
-            const timeStr = `${hours}:${minutes}:${seconds}`;
-
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             const payload = {
-                date: fullDateStr,
+                date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
                 time: timeStr,
                 period: selectedPeriod,
                 grade: `${gradePrefix}학년`,
                 students: filteredStudents
             };
 
-            alert("해당 학년 전송을 시작합니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.");
-
+            alert(`[${selectedPeriod}] ${gradePrefix}학년 명단 전송을 시작합니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.`);
             const sendBtn = event ? event.target : null;
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerText = "전송 중... ⏳";
-                sendBtn.style.backgroundColor = "#777";
-            }
+            if (sendBtn) { sendBtn.disabled = true; sendBtn.innerText = "전송 중... ⏳"; sendBtn.style.backgroundColor = "#777"; }
 
             fetch(GOOGLE_SHEET_URL, {
-                method: 'POST',
-                mode: 'no-cors', 
-                headers: { 'Content-Type': 'text/plain' },
+                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
-            })
-            .then(response => {
-                alert(`✅ 구글 시트로 전송이 완료되었습니다!\n(전송 시각: ${timeStr})`);
-            })
-            .catch(error => {
-                alert("네트워크 오류가 발생했습니다.\n" + error);
-            })
-            .finally(() => {
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                    sendBtn.innerText = "구글 시트로 전송";
-                    sendBtn.style.backgroundColor = "#0f9d58";
-                }
-            });
+            }).then(() => alert(`✅ 구글 시트로 전송이 완료되었습니다!\n(전송 시각: ${timeStr})`))
+              .catch(error => alert("네트워크 오류: " + error))
+              .finally(() => { if (sendBtn) { sendBtn.disabled = false; sendBtn.innerText = "구글 시트로 전송"; sendBtn.style.backgroundColor = "#0f9d58"; } });
         }
 
-        // 🌟 수정됨: 전체 학년 일괄 전송 (자동 전송 호환 기능 추가)
+        // 🌟 수정됨: 수동 전체 학년 구글 시트 전송 시 프롬프트 팝업으로 강제 선택
         function exportAllToGoogleSheet(isAuto = false, autoPeriod = null) {
-            // 수동 클릭일 때만 인증 검사 수행
-            if (!isAuto) {
-                if (!isTeacherAuthenticated) {
-                    const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
-                    if (code === "96123") {
-                        isTeacherAuthenticated = true;
-                        alert("인증되었습니다.");
-                    } else {
-                        if (code !== null) alert("코드가 일치하지 않습니다.");
-                        return; 
-                    }
-                }
-            }
+            let selectedPeriod = "";
 
-            // 자동 전송이면 매개변수로 받은 시간을, 수동이면 화면의 라디오버튼 값을 적용
-            let selectedPeriod = "오후자습";
             if (isAuto && autoPeriod) {
+                // 자동 전송 모드일 때는 서버가 지정해 준 시간을 따릅니다.
                 selectedPeriod = autoPeriod;
             } else {
-                const periodRadios = document.getElementsByName('panelStudyPeriod');
-                for (let radio of periodRadios) {
-                    if (radio.checked) { selectedPeriod = radio.value; break; }
+                // 수동 모드일 때는 선생님 확인
+                if (!isTeacherAuthenticated) {
+                    const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
+                    if (code === "96123") { isTeacherAuthenticated = true; alert("인증되었습니다."); } 
+                    else { if (code !== null) alert("코드가 일치하지 않습니다."); return; }
+                }
+
+                // 💡 여기서 확인받습니다!
+                const periodInput = prompt("어떤 자습 명단을 전송하시겠습니까?\n\n1 : 오후자습\n2 : 저녁자습\n\n숫자 '1' 또는 '2'를 입력해주세요.");
+                if (periodInput === "1") {
+                    selectedPeriod = "오후자습";
+                } else if (periodInput === "2") {
+                    selectedPeriod = "저녁자습";
+                } else {
+                    alert("올바른 숫자를 입력하지 않아 전송이 취소되었습니다.");
+                    return;
                 }
             }
 
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const date = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            
-            const fullDateStr = `${year}-${month}-${date}`;
-            const timeStr = `${hours}:${minutes}:${seconds}`;
+            const fullDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
             function getGradeData(gradePrefix) {
                 let allStudents = [];
@@ -713,195 +630,96 @@ function updateClock() {
                         if (seat) {
                             let label = libraryData[key].seatLabels[index];
                             let displayLabel = String(label).includes('-') ? label : `${label}번`;
-                            let seatLoc = displayLabel.startsWith(areaName) ? displayLabel : `${areaName} ${displayLabel}`;
                             allStudents.push({
                                 id: String(seat.id), name: seat.name, displayLabel: displayLabel,
-                                seatLocation: seatLoc, remark: seat.remark || '', areaKey: key, seatIndex: index
+                                seatLocation: displayLabel.startsWith(areaName) ? displayLabel : `${areaName} ${displayLabel}`,
+                                remark: seat.remark || '', areaKey: key, seatIndex: index
                             });
                         }
                     });
                 }
-                let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
-                filteredStudents.sort((a, b) => {
-                    if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
-                    return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
-                });
-                return filteredStudents;
+                return allStudents.filter(s => s.id.startsWith(gradePrefix));
             }
 
-            const data1 = getGradeData('1');
-            const data2 = getGradeData('2');
-            const data3 = getGradeData('3');
-
-            // 수동일 때만 팝업 안내 및 UI 변경 수행
             if (!isAuto) {
-                alert(`전체 학년(${selectedPeriod}) 전송을 시작합니다.\n구글 서버 안정화를 위해 약 5초 정도 소요됩니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.`);
+                alert(`전체 학년 [${selectedPeriod}] 전송을 시작합니다.\n완료 알림이 뜰 때까지 잠시만 기다려주세요.`);
             }
-
+            
             const sendBtn = document.getElementById('btnExportAll');
-            if (sendBtn && !isAuto) {
-                sendBtn.disabled = true;
-                sendBtn.innerText = "전체 전송 중... ⏳";
-                sendBtn.style.backgroundColor = "#777";
-            }
+            if (sendBtn && !isAuto) { sendBtn.disabled = true; sendBtn.innerText = "전체 전송 중... ⏳"; sendBtn.style.backgroundColor = "#777"; }
 
             function sendPayload(gradePrefix, students) {
-                const payload = {
-                    date: fullDateStr,
-                    time: timeStr,
-                    period: selectedPeriod,
-                    grade: `${gradePrefix}학년`,
-                    students: students
-                };
                 return fetch(GOOGLE_SHEET_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(payload)
+                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ date: fullDateStr, time: timeStr, period: selectedPeriod, grade: `${gradePrefix}학년`, students: students })
                 });
             }
 
-            // 1학년 -> 5초 딜레이 -> 2학년 -> 5초 딜레이 -> 3학년 전송
-            sendPayload('1', data1)
+            sendPayload('1', getGradeData('1'))
                 .then(() => new Promise(resolve => setTimeout(resolve, 5000))) 
-                .then(() => sendPayload('2', data2))
+                .then(() => sendPayload('2', getGradeData('2')))
                 .then(() => new Promise(resolve => setTimeout(resolve, 5000)))
-                .then(() => sendPayload('3', data3))
+                .then(() => sendPayload('3', getGradeData('3')))
                 .then(() => {
-                    if (!isAuto) {
-                        alert(`✅ 전체 학년 구글 시트 전송이 완벽하게 완료되었습니다!\n(전송 시각: ${timeStr})`);
-                    }
+                    if (!isAuto) alert(`✅ 전체 학년 구글 시트 전송이 완료되었습니다!\n(전송 시각: ${timeStr})`);
                 })
                 .catch(error => {
-                    if (!isAuto) alert("전송 중 네트워크 오류가 발생했습니다.\n" + error);
+                    if (!isAuto) alert("네트워크 오류: " + error);
                 })
-                .finally(() => {
-                    if (sendBtn && !isAuto) {
-                        sendBtn.disabled = false;
-                        sendBtn.innerText = "전체 학년 구글 시트로 전송";
-                        sendBtn.style.backgroundColor = "#0f9d58";
-                    }
+                .finally(() => { 
+                    if (sendBtn && !isAuto) { sendBtn.disabled = false; sendBtn.innerText = "전체 학년 구글 시트로 전송"; sendBtn.style.backgroundColor = "#0f9d58"; } 
                 });
         }
 
         function updatePanel() {
             if (currentSpace.startsWith('list')) {
-                displaySeatNum.innerText = '-';
-                studentIdInput.value = '';
-                studentNameInput.value = '';
-                studentIdInput.disabled = true;
-                studentNameInput.disabled = true;
-                btnRegister.disabled = true;
-                btnVacate.disabled = true;
+                displaySeatNum.innerText = '-'; studentIdInput.value = ''; studentNameInput.value = '';
+                studentIdInput.disabled = true; studentNameInput.disabled = true; btnRegister.disabled = true; btnVacate.disabled = true;
                 return;
             }
-
-            studentIdInput.disabled = false;
-            studentNameInput.disabled = false;
-            btnRegister.disabled = false;
-            btnVacate.disabled = false;
+            studentIdInput.disabled = false; studentNameInput.disabled = false; btnRegister.disabled = false; btnVacate.disabled = false;
 
             if (selectedSeatIndex !== null) {
-                let label = libraryData[currentSpace].seatLabels[selectedSeatIndex];
-                displaySeatNum.innerText = label;
-                
+                displaySeatNum.innerText = libraryData[currentSpace].seatLabels[selectedSeatIndex];
                 const seatInfo = libraryData[currentSpace].seats[selectedSeatIndex];
-                if (seatInfo) {
-                    studentIdInput.value = seatInfo.id;
-                    studentNameInput.value = seatInfo.name;
-                } else {
-                    studentIdInput.value = '';
-                    studentNameInput.value = '';
-                }
+                studentIdInput.value = seatInfo ? seatInfo.id : '';
+                studentNameInput.value = seatInfo ? seatInfo.name : '';
             } else {
-                displaySeatNum.innerText = '-';
-                studentIdInput.value = '';
-                studentNameInput.value = '';
+                displaySeatNum.innerText = '-'; studentIdInput.value = ''; studentNameInput.value = '';
             }
         }
 
         function registerSeat() {
             if (currentSpace.startsWith('list')) return;
-            if (selectedSeatIndex === null) {
-                alert("먼저 지도에서 좌석을 선택해주세요.");
-                return;
+            if (selectedSeatIndex === null) { alert("먼저 지도에서 좌석을 선택해주세요."); return; }
+            const studentId = studentIdInput.value.trim(); const studentName = studentNameInput.value.trim();
+            if (!studentId || !studentName) { alert("학번과 이름을 모두 입력해주세요."); return; }
+            if (!/^[1-3]0[1-9](0[1-9]|[1-9][0-9])$/.test(studentId)) {
+                alert("학번을 잘못 입력했습니다.\n(예: 1학년 1반 1번 -> 10101)"); studentIdInput.focus(); return;
             }
-
-            const studentId = studentIdInput.value.trim();
-            const studentName = studentNameInput.value.trim();
-
-            if (!studentId || !studentName) {
-                alert("학번과 이름을 모두 입력해주세요.");
-                return;
-            }
-
-            const idPattern = /^[1-3]0[1-9](0[1-9]|[1-9][0-9])$/;
-            if (!idPattern.test(studentId)) {
-                alert("학번을 잘못 입력했습니다.\n(예: 1학년 1반 1번 -> 10101)\n※ 첫자리는 1~3학년, 반은 01~09, 번호는 두 자리(01~99)로 정확히 입력해주세요.");
-                studentIdInput.focus();
-                return;
-            }
-
-            db.ref(`librarySeats/${currentSpace}/${selectedSeatIndex}`).set({
-                id: studentId, 
-                name: studentName,
-                remark: "" 
-            });
-
-            alert("좌석 등록이 완료되었습니다.");
-            studentIdInput.value = '';
-            studentNameInput.value = '';
+            db.ref(`librarySeats/${currentSpace}/${selectedSeatIndex}`).set({ id: studentId, name: studentName, remark: "" });
+            alert("좌석 등록이 완료되었습니다."); studentIdInput.value = ''; studentNameInput.value = '';
         }
 
         function vacateSeat() {
             if (currentSpace.startsWith('list')) return;
-            if (selectedSeatIndex === null || !libraryData[currentSpace].seats[selectedSeatIndex]) {
-                alert("퇴실 처리할 사용 중인 좌석을 선택해주세요.");
-                return;
-            }
+            if (selectedSeatIndex === null || !libraryData[currentSpace].seats[selectedSeatIndex]) { alert("퇴실 처리할 사용 중인 좌석을 선택해주세요."); return; }
             if (confirm("해당 좌석을 퇴실 처리하시겠습니까?")) {
                 db.ref(`librarySeats/${currentSpace}/${selectedSeatIndex}`).remove();
-                selectedSeatIndex = null;
-                updatePanel();
+                selectedSeatIndex = null; updatePanel();
             }
         }
 
-       function resetAllSeats(isAuto = false) {
-            // 수동 클릭일 때만 선생님 암호와 진짜 지울 것인지 묻는 경고창을 띄웁니다.
-            if (!isAuto) {
-                if (!isTeacherAuthenticated) {
-                    const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
-                    if (code === "96123") {
-                        isTeacherAuthenticated = true;
-                        alert("인증되었습니다.");
-                    } else {
-                        if (code !== null) alert("코드가 일치하지 않습니다.");
-                        return; 
-                    }
-                }
-
-                if (!confirm("⚠️ 주의: 모든 학년과 구역의 좌석 데이터가 완전히 삭제됩니다.\n정말로 전체 좌석을 초기화하시겠습니까?")) {
-                    return; // 취소를 누르면 중단
-                }
+        function resetAllSeats() {
+            if (!isTeacherAuthenticated) {
+                const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
+                if (code === "96123") { isTeacherAuthenticated = true; alert("인증되었습니다."); } 
+                else { if (code !== null) alert("코드가 일치하지 않습니다."); return; }
             }
-
-            // Firebase 데이터베이스에서 모든 좌석 정보 삭제
-            db.ref('librarySeats').remove()
-                .then(() => {
-                    // 수동일 때만 완료 알림창을 띄움
-                    if (!isAuto) {
-                        alert("전체 좌석이 성공적으로 초기화되었습니다.");
-                    }
-                    selectedSeatIndex = null;
-                    updatePanel(); // 화면(UI) 업데이트
-                })
-                .catch((error) => {
-                    if (!isAuto) {
-                        alert("초기화 중 오류가 발생했습니다: " + error);
-                    } else {
-                        console.error("자동 초기화 중 오류 발생: ", error);
-                    }
-                });
+            if (confirm("⚠️ 주의: 모든 좌석 데이터가 완전히 삭제됩니다.\n정말로 초기화하시겠습니까?")) {
+                db.ref('librarySeats').remove().then(() => { alert("초기화 완료"); selectedSeatIndex = null; updatePanel(); })
+                                             .catch((error) => alert("오류: " + error));
+            }
         }
         renderTabs();
     </script>
