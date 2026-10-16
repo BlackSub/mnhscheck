@@ -49,7 +49,8 @@
         .student-info { font-size: clamp(8px, 0.8vw, 12px); line-height: 1.2; font-weight: normal; text-align: center; word-break: break-all; }
         .student-list-table { width: 100%; border-collapse: collapse; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .student-list-table th, .student-list-table td { border: 1px solid var(--border-color); padding: 10px; text-align: center; vertical-align: middle; font-size: 0.9em; }
-        .student-list-table th { background-color: #2e7d32; color: white; font-weight: bold; }
+        .student-list-table th { background-color: #2e7d32; color: white; font-weight: bold; position: sticky; top: 0; }
+        .student-list-table th.sortable:hover { background-color: #1b5e20; cursor: pointer; } 
         .student-list-table tr:nth-child(even) { background-color: #f8f9fa; }
         .empty-message { padding: 40px; color: #777; font-size: 1.1em; text-align: center; }
         .remark-input { width: 100%; padding: 8px; font-size: 0.95em; border: 1px solid var(--border-color); border-radius: 4px; outline: none; box-sizing: border-box; transition: 0.2s; min-width: 80px; }
@@ -73,8 +74,11 @@
         .btn-danger:hover { background-color: #b71c1c; }
         .btn-export { width: auto; padding: 8px 15px; font-size: 0.9em; background-color: #2e7d32; color: white; margin: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn-export:hover { background-color: #1b5e20; }
-        .btn-sheets { background-color: #0f9d58; color: white; transition: background-color 0.3s; margin-top: 5px; } 
+        /* 🌟 수정됨: margin-top: 5px 삭제하여 일직선 정렬 맞춤 */
+        .btn-sheets { background-color: #0f9d58; color: white; transition: background-color 0.3s; } 
         .btn-sheets:hover { background-color: #0b8043; }
+        .btn-open-sheet { background-color: #1a73e8; color: white; } 
+        .btn-open-sheet:hover { background-color: #1557b0; }
         @media (max-width: 1024px) { .main-container { flex-direction: column; align-items: center; } .map-section { width: 100%; padding: 15px; } .panel-section { flex: 1 1 auto; width: 100%; max-width: 100%; margin-top: 10px; } }
     </style>
 </head>
@@ -110,14 +114,21 @@
             
             <div style="width: 100%; border-top: 2px dashed var(--border-color); margin: 25px 0 15px 0;"></div>
             <h3 style="margin: 0 0 15px 0; color: #2e7d32; font-size: 1.15em;">전체 명단 일괄 전송</h3>
-            <!-- 🌟 라디오 버튼 삭제됨 -->
             <button class="btn btn-sheets" id="btnExportAll" onclick="exportAllToGoogleSheet()">전체 학년 구글 시트로 전송</button>
             
         </div>
     </div>
 
     <script>
+        // ----------------------------------------------------
+        // 🌟 1. 데이터 전송용 구글 앱스 스크립트 Web App URL 
+        // ----------------------------------------------------
         const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyd6ZAZ6BhY8EwPqvtREKANyc59WMh2MbKF5bMM1PSBd4N8jU6jgswhR3eU1vhQAAJ5/exec";
+
+        // ----------------------------------------------------
+        // 🌟 2. 구글 스프레드시트 문서 '바로가기' URL (직접 입력 필요!)
+        // ----------------------------------------------------
+        const GOOGLE_SHEET_DOCUMENT_URL = "https://docs.google.com/spreadsheets/d/10gGOA7v4fuSXGdJRhAD9fyJxB1g8QjjYL-30AV3qeD0/edit?usp=sharing";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCmFgqZFPzN2IuVov-2NNcEd7k1oI_Zk10",
@@ -132,6 +143,9 @@
         const db = firebase.database();
 
         let lastAutoSendTime = "";
+        
+        let currentSortColumn = 'seat'; 
+        let currentSortOrder = 'asc';   
 
         function updateClock() {
             const clockElement = document.getElementById('realTimeClock');
@@ -146,9 +160,6 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             clockElement.innerText = `${year}년 ${month}월 ${date}일 (${day}요일) ${hours}:${minutes}:${seconds}`;
-
-            // (이 로직은 웹 브라우저를 켜두었을 때의 예비 자동화입니다. 
-            // 현재 구글 서버 단독 자동화가 작동 중이므로 이 부분이 실행되지 않아도 무방합니다.)
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -329,6 +340,10 @@
                     }
                     currentSpace = tabInfo.id;
                     selectedSeatIndex = null;
+                    
+                    currentSortColumn = 'seat';
+                    currentSortOrder = 'asc';
+
                     updatePanel();
                     renderTabs();
                     renderList(tabInfo.gradePrefix); 
@@ -414,6 +429,24 @@
             }
         }
 
+        function changeSort(column) {
+            if (currentSortColumn === column) {
+                currentSortOrder = (currentSortOrder === 'asc') ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortOrder = 'asc';
+            }
+            renderList(currentSpace.replace('list-grade', ''));
+        }
+
+        function openGoogleSheet() {
+            if (GOOGLE_SHEET_DOCUMENT_URL === "여기에_구글_스프레드시트_실제_주소를_입력하세요" || !GOOGLE_SHEET_DOCUMENT_URL) {
+                alert("코드 상단에 구글 스프레드시트 실제 주소(URL)가 입력되지 않았습니다.\nHTML 파일의 GOOGLE_SHEET_DOCUMENT_URL을 수정해 주세요.");
+                return;
+            }
+            window.open(GOOGLE_SHEET_DOCUMENT_URL, '_blank');
+        }
+
         function renderList(gradePrefix) {
             seatContainer.innerHTML = '';
             seatContainer.style.display = 'block'; 
@@ -436,20 +469,32 @@
             }
 
             let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
+
             filteredStudents.sort((a, b) => {
-                if (a.areaKey !== b.areaKey) return a.areaKey.localeCompare(b.areaKey);
-                return a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
+                let result = 0;
+                if (currentSortColumn === 'id') {
+                    result = a.id.localeCompare(b.id);
+                } else if (currentSortColumn === 'name') {
+                    result = a.name.localeCompare(b.name);
+                } else {
+                    if (a.areaKey !== b.areaKey) {
+                        result = a.areaKey.localeCompare(b.areaKey);
+                    } else {
+                        result = a.displayLabel.localeCompare(b.displayLabel, 'ko', { numeric: true });
+                    }
+                }
+                return currentSortOrder === 'asc' ? result : -result;
             });
 
-            // 🌟 라디오 버튼 제거됨
             let summaryHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-left: 5px; flex-wrap: wrap; gap: 10px;">
                     <div style="font-size: 1.1em; font-weight: bold; color: #2e7d32;">
                         현재 자습 참여 인원 : 총 ${filteredStudents.length}명
                     </div>
-                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <button class="btn btn-export" onclick="exportCSV('${gradePrefix}')">엑셀 다운로드</button>
                         <button class="btn btn-export btn-sheets" onclick="exportToGoogleSheet('${gradePrefix}')">구글 시트로 전송</button>
+                        <button class="btn btn-export btn-open-sheet" onclick="openGoogleSheet()">📊 구글 시트 열기</button>
                     </div>
                 </div>
             `;
@@ -459,8 +504,21 @@
                 return;
             }
 
+            const getSortIcon = (col) => {
+                if (currentSortColumn === col) {
+                    return currentSortOrder === 'asc' ? ' ▲' : ' ▼';
+                }
+                return '';
+            };
+
             let tableHTML = '<div style="overflow-x: auto;"><table class="student-list-table">';
-            tableHTML += '<tr><th style="min-width:60px;">학번</th><th style="min-width:60px;">이름</th><th style="min-width:110px;">위치</th><th style="min-width:150px;">비고</th></tr>';
+            tableHTML += `<tr>
+                <th class="sortable" style="min-width:60px;" onclick="changeSort('id')">학번${getSortIcon('id')}</th>
+                <th class="sortable" style="min-width:60px;" onclick="changeSort('name')">이름${getSortIcon('name')}</th>
+                <th class="sortable" style="min-width:110px;" onclick="changeSort('seat')">위치${getSortIcon('seat')}</th>
+                <th style="min-width:150px;">비고</th>
+            </tr>`;
+            
             filteredStudents.forEach(student => {
                 tableHTML += `<tr>
                                 <td>${student.id}</td>
@@ -481,7 +539,6 @@
             db.ref(`librarySeats/${areaKey}/${seatIndex}/remark`).set(value);
         }
 
-        // 🌟 수정됨: 엑셀 다운로드 시 프롬프트 팝업으로 강제 선택
         function exportCSV(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
@@ -501,7 +558,6 @@
             let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
             if (filteredStudents.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
 
-            // 💡 여기서 확인받습니다!
             const periodInput = prompt("어떤 자습 명단을 엑셀로 다운로드하시겠습니까?\n\n1 : 오후자습\n2 : 저녁자습\n\n숫자 '1' 또는 '2'를 입력해주세요.");
             let selectedPeriod = "";
             if (periodInput === "1") {
@@ -537,7 +593,6 @@
             document.body.removeChild(link);
         }
 
-        // 🌟 수정됨: 개별 학년 구글 시트 전송 시 프롬프트 팝업으로 강제 선택
         function exportToGoogleSheet(gradePrefix) {
             let allStudents = [];
             for (let key in libraryData) {
@@ -557,7 +612,6 @@
             let filteredStudents = allStudents.filter(student => student.id.startsWith(gradePrefix));
             if (filteredStudents.length === 0) { alert("전송할 데이터가 없습니다."); return; }
 
-            // 💡 여기서 확인받습니다!
             const periodInput = prompt(`해당 학년(${gradePrefix}학년)의 어떤 자습 명단을 전송하시겠습니까?\n\n1 : 오후자습\n2 : 저녁자습\n\n숫자 '1' 또는 '2'를 입력해주세요.`);
             let selectedPeriod = "";
             if (periodInput === "1") {
@@ -591,22 +645,18 @@
               .finally(() => { if (sendBtn) { sendBtn.disabled = false; sendBtn.innerText = "구글 시트로 전송"; sendBtn.style.backgroundColor = "#0f9d58"; } });
         }
 
-        // 🌟 수정됨: 수동 전체 학년 구글 시트 전송 시 프롬프트 팝업으로 강제 선택
         function exportAllToGoogleSheet(isAuto = false, autoPeriod = null) {
             let selectedPeriod = "";
 
             if (isAuto && autoPeriod) {
-                // 자동 전송 모드일 때는 서버가 지정해 준 시간을 따릅니다.
                 selectedPeriod = autoPeriod;
             } else {
-                // 수동 모드일 때는 선생님 확인
                 if (!isTeacherAuthenticated) {
                     const code = prompt("선생님 전용 메뉴입니다.\n관리자 코드를 입력하세요:");
                     if (code === "96123") { isTeacherAuthenticated = true; alert("인증되었습니다."); } 
                     else { if (code !== null) alert("코드가 일치하지 않습니다."); return; }
                 }
 
-                // 💡 여기서 확인받습니다!
                 const periodInput = prompt("어떤 자습 명단을 전송하시겠습니까?\n\n1 : 오후자습\n2 : 저녁자습\n\n숫자 '1' 또는 '2'를 입력해주세요.");
                 if (periodInput === "1") {
                     selectedPeriod = "오후자습";
